@@ -154,26 +154,38 @@ async function transitionToScene(sceneIndex) {
 
     const playFrame = () => {
       if (currentSceneIndex !== sceneIndex) return;
-      idx++;
-      if (idx < maxFrames && idx < sceneAssets.frames.length) {
-        posterizeInstance.setImage(sceneAssets.frames[idx]);
+      
+      const frameIndexToRender = idx;
+      if (frameIndexToRender < maxFrames && frameIndexToRender < sceneAssets.frames.length) {
+        posterizeInstance.setImage(sceneAssets.frames[frameIndexToRender]);
         playGateFrameClank(1.0);
-        
-        if (idx === maxFrames - 1) {
+
+        if (frameIndexToRender === maxFrames - 1) {
           // This is the last frame, stop the looping audio now.
           stopGateLongCreak(0.5); // Quicker fade out as the gate stops moving
           if (autoSkipTimeout) clearTimeout(autoSkipTimeout); // also cancel the scene skip timeout
           csElement.removeEventListener('click', skipCurrentScene);
+          // End of animation.
         } else {
-          const delay = sceneAssets.delays[idx] || 100;
+          const delay = sceneAssets.delays[frameIndexToRender] || 100;
+          idx++; // Increment for the next frame
           slideshowTimer = setTimeout(playFrame, delay);
         }
       }
     };
 
-    requestAnimationFrame(()=>{ canvas.classList.add('reveal'); if(scene.onStart) scene.onStart(csElement, canvas);
-      slideshowTimer = setTimeout(playFrame, sceneAssets.delays[0]||100);
-      if (currentSceneIndex < scenes.length - 1) { autoSkipTimeout = setTimeout(skipCurrentScene, scene.duration); csElement.addEventListener('click', skipCurrentScene, { once:true }); }
+    requestAnimationFrame(()=>{ canvas.classList.add('reveal'); 
+      posterizeInstance.setImage(sceneAssets.frames[0]); // Render first frame immediately
+      if(scene.onStart) scene.onStart(csElement, canvas);
+      
+      const firstDelay = sceneAssets.delays[0] || 100;
+      idx = 1; // Set up for the next frame
+      slideshowTimer = setTimeout(playFrame, firstDelay);
+      
+      if (currentSceneIndex < scenes.length - 1) { 
+        autoSkipTimeout = setTimeout(skipCurrentScene, scene.duration); 
+        csElement.addEventListener('click', skipCurrentScene, { once:true }); 
+      }
       isTransitioning=false;
     });
   } else {
